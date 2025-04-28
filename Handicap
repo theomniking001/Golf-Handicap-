@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Handicap Calculator</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(to bottom right, #e0f7fa, #80deea);
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #00695c;
+      margin-bottom: 20px;
+    }
+    .round {
+      background: white;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    input {
+      margin: 5px 0;
+      padding: 10px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 15px;
+      background: #00897b;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      width: 100%;
+      font-size: 18px;
+      margin-top: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      background: #00695c;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 22px;
+      text-align: center;
+      color: #004d40;
+      font-weight: bold;
+    }
+    #courseName {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 10px;
+      font-size: 16px;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Golf Handicap Calculator</h1>
+
+  <div id="rounds"></div>
+  <button onclick="addRound()">Add Another Round</button>
+  <button onclick="calculateHandicap()">Calculate Handicap</button>
+
+  <h2>Search for a Course</h2>
+  <input id="courseName" type="text" placeholder="Search for a Course" oninput="lookupCourse()"/>
+  <div id="lookupResult"></div>
+
+  <h2>Update Course Ratings</h2>
+  <div id="updateSection"></div>
+
+  <div id="result"></div>
+
+  <!-- Share App Button -->
+  <button onclick="shareApp()">Share App</button>
+
+<script>
+  let courses = [
+    { name: "Foxfire (The Players Club)", rating: 74.0, slope: 147 },
+    { name: "Homestead Springs", rating: 70.6, slope: 121 },
+    { name: "Deer Creek State Park", rating: 73.8, slope: 124 },
+    { name: "Turnberry", rating: 72.8, slope: 127 }
+  ];
+
+  // Add a round of golf
+  function addRound() {
+    const container = document.getElementById('rounds');
+    const div = document.createElement('div');
+    div.className = 'round';
+    div.innerHTML = `
+      <input type="number" placeholder="Adjusted Gross Score" class="score">
+      <input type="number" placeholder="Course Rating" class="courseRating">
+      <input type="number" placeholder="Slope Rating" class="slopeRating">
+    `;
+    container.appendChild(div);
+  }
+
+  // Calculate the handicap
+  function calculateHandicap() {
+    const scores = document.querySelectorAll('.score');
+    const courseRatings = document.querySelectorAll('.courseRating');
+    const slopeRatings = document.querySelectorAll('.slopeRating');
+    let differentials = [];
+
+    for (let i = 0; i < scores.length; i++) {
+      const score = parseFloat(scores[i].value);
+      const courseRating = parseFloat(courseRatings[i].value);
+      const slopeRating = parseFloat(slopeRatings[i].value);
+      if (!isNaN(score) && !isNaN(courseRating) && !isNaN(slopeRating)) {
+        const differential = (score - courseRating) * (113 / slopeRating);
+        differentials.push(differential);
+      }
+    }
+
+    if (differentials.length < 3) {
+      document.getElementById('result').innerText = "Enter at least 3 rounds!";
+      return;
+    }
+
+    differentials.sort((a, b) => a - b);
+
+    let count = 0;
+    if (differentials.length < 7) count = 1;
+    else if (differentials.length < 9) count = 2;
+    else if (differentials.length < 12) count = 3;
+    else if (differentials.length < 15) count = 4;
+    else if (differentials.length < 17) count = 5;
+    else if (differentials.length < 19) count = 6;
+    else if (differentials.length == 19) count = 7;
+    else count = 8;
+
+    const bestDiffs = differentials.slice(0, count);
+    const avg = bestDiffs.reduce((a,b) => a+b, 0) / bestDiffs.length;
+
+    document.getElementById('result').innerText = `Your Handicap Index is: ${avg.toFixed(1)}`;
+  }
+
+  // Lookup Course based on course name input
+  function lookupCourse() {
+    const courseName = document.getElementById('courseName').value.trim().toLowerCase();
+    const course = courses.find(course => course.name.toLowerCase().includes(courseName));
+
+    const lookupResultDiv = document.getElementById('lookupResult');
+    const updateSection = document.getElementById('updateSection');
+
+    if (course) {
+      lookupResultDiv.innerHTML = `
+        <p><strong>Course Found:</strong> ${course.name}</p>
+        <p><strong>Course Rating:</strong> ${course.rating}</p>
+        <p><strong>Slope Rating:</strong> ${course.slope}</p>
+        <button onclick="showUpdateForm('${course.name}')">Update Ratings</button>
+      `;
+    } else {
+      lookupResultDiv.innerText = "Course not found. Please try again.";
+    }
+  }
+
+  // Show update form when clicking 'Update Ratings' button
+  function showUpdateForm(courseName) {
+    const course = courses.find(course => course.name === courseName);
+    if (course) {
+      document.getElementById('updateSection').innerHTML = `
+        <h3>Update Ratings for: ${course.name}</h3>
+        <input id="newRating" type="number" placeholder="New Course Rating" value="${course.rating}">
+        <input id="newSlope" type="number" placeholder="New Slope Rating" value="${course.slope}">
+        <button onclick="updateCourseRatings('${course.name}')">Save Changes</button>
+      `;
+    }
+  }
+
+  // Update the course ratings
+  function updateCourseRatings(courseName) {
+    const newRating = parseFloat(document.getElementById('newRating').value);
+    const newSlope = parseFloat(document.getElementById('newSlope').value);
+
+    const course = courses.find(course => course.name === courseName);
+    if (course) {
+      course.rating = newRating;
+      course.slope = newSlope;
+      alert(`${courseName} ratings updated!`);
+      document.getElementById('updateSection').innerHTML = ''; // Hide the update form
+      lookupCourse(); // Refresh the lookup results
+    }
+  }
+
+  // Share App function
+  function shareApp() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Golf Handicap Calculator',
+        text: 'Check out this handy Golf Handicap Calculator app!',
+        url: window.location.href
+      }).then(() => {
+        console.log('Thanks for sharing!');
+      }).catch((error) => {
+        console.log('Error sharing:', error);
+      });
+    } else {
+      alert("Your browser does not support the Share API.");
+    }
+  }
+</script>
+
+</body>
+</html>
